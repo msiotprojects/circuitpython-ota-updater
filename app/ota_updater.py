@@ -1,5 +1,10 @@
-import os, gc
-from .httpclient import HttpClient
+import os
+import gc
+
+import adafruit_connection_manager
+import adafruit_requests
+
+import wifi
 
 class OTAUpdater:
     """
@@ -7,8 +12,10 @@ class OTAUpdater:
     optimized for low power usage.
     """
 
-    def __init__(self, github_repo, github_src_dir='', module='', main_dir='main', new_version_dir='next', secrets_file=None, headers={}):
-        self.http_client = HttpClient(headers=headers)
+    def __init__(self, github_repo, github_src_dir='', module='', main_dir='app', new_version_dir='next', secrets_file=None, headers={}):
+        
+        # new self.headers:
+        self.headers = headers    # any headers for github authentication on private repo
         self.github_repo = github_repo.rstrip('/').replace('https://github.com/', '')
         self.github_src_dir = '' if len(github_src_dir) < 1 else github_src_dir.rstrip('/') + '/'
         self.module = module.rstrip('/')
@@ -16,9 +23,49 @@ class OTAUpdater:
         self.new_version_dir = new_version_dir
         self.secrets_file = secrets_file
 
-    def __del__(self):
-        self.http_client = None
+        # mpython orig: self.http_client = HttpClient(headers=headers)
+        # Adafruit Requests replaces micropython-ota-updater htppclient.py HttpClient class 
+        # with Adafruit libraries: adafruit_connection_manager, adafruit_requests
+            # Initalize Wifi, Socket Pool, Request Session
+        self.pool = adafruit_connection_manager.get_radio_socketpool(wifi.radio)
+        self.ssl_context = adafruit_connection_manager.get_radio_ssl_context(wifi.radio)
+        self.request = adafruit_requests.Session(pool, ssl_context)
+            # use "with self.request.get(url) as var"
+            # where previously we used self.httpclient.get(url)
+            #    was xxxx
+            #    now    with self.requests.get(url) as response:
+            #                do something like
+            #                text = response.text
+            #                json = response.json()
 
+    
+
+    def __del__(self):
+        # mpython orig: self.http_client = None
+        self.request = None
+        self.ssl_context = None
+        self.pool = None
+
+    
+
+    def get_misc_settings() -> dict:
+    settings = {
+        "wifi_ssid": os.getenv("WIFI_SSID", "Missing_WIFI_SSID"),
+        "wifi_password": os.getenv("WIFI_PASSWORD", "Missing_WIFI_PASSWORD"),
+        
+            # get  GETHUB repo/access from settings.toml
+        "repo_name":  os.getenv("GETHUB_REPO_NAME", "Missing_repo_name"),
+        "repo_owner": os.getenv("GETHUB_REPO_OWNER", "Missing_repo_owner"),
+        "repo_access_token": os.getenv("GETHUB_ACCESS_TOKEN", None)  ,  
+
+            # in case we ever use Adafruit.IO for additional capabilities
+        "cloud_username":    os.getenv("AIO_USERNAME", None),
+        "cloud_access_key":  os.getenv("AIO_KEY", None),
+        
+    }
+    return settings
+
+    
     def check_for_update_to_install_during_next_reboot(self) -> bool:
         """Function which will check the GitHub repo if there is a newer version available.
         
@@ -118,20 +165,20 @@ class OTAUpdater:
         if version_file_name in os.listdir(directory):
             with open(directory + '/' + version_file_name) as f:
                 version = f.read()
-                return version
-        return '0.0'
+                return version    # from file
+        return '0.0'    # version 0.0 if never released or updated
 
     def get_latest_version(self):
-        latest_release = self.http_client.get('https://api.github.com/repos/{}/releases/latest'.format(self.github_repo))
-        gh_json = latest_release.json()
-        try:
-            version = gh_json['tag_name']
-        except KeyError as e:
-            raise ValueError(
-                "Release not found: \n",
-                "Please ensure release as marked as 'latest', rather than pre-release \n",
-                "github api message: \n {} \n ".format(gh_json)
-            )
+        with self.requests.get('https://api.github.com/repos/{}/releases/latest'.format(self.github_repo)) as latest_release:
+            gh_json = latest_release.json()
+            try:
+                version = gh_json['tag_name']
+            except KeyError as e:
+                raise ValueError(
+                    "Release not found: \n",
+                    "Please ensure release as marked as 'latest', rather than pre-release \n",
+                    "github api message: \n {} \n ".format(gh_json)
+                )
         latest_release.close()
         return version
 
@@ -143,25 +190,30 @@ class OTAUpdater:
     def _download_all_files(self, version, sub_dir=''):
         url = 'https://api.github.com/repos/{}/contents{}{}{}?ref=refs/tags/{}'.format(self.github_repo, self.github_src_dir, self.main_dir, sub_dir, version)
         gc.collect() 
-        file_list = self.http_client.get(url)
-        file_list_json = file_list.json()
-        for file in file_list_json:
-            path = self.modulepath(self.new_version_dir + '/' + file['path'].replace(self.main_dir + '/', '').replace(self.github_src_dir, ''))
-            if file['type'] == 'file':
-                gitPath = file['path']
-                print('\tDownloading: ', gitPath, 'to', path)
-                self._download_file(version, gitPath, path)
-            elif file['type'] == 'dir':
-                print('Creating dir', path)
-                self.mkdir(path)
-                self._download_all_files(version, sub_dir + '/' + file['name'])
-            gc.collect()
+        with self.requests.get(url) as file_list:
+            file_list_json = file_list.json()
+            for file in file_list_json:
+                path = self.modulepath(self.new_version_dir + '/' + file['path'].replace(self.main_dir + '/', '').replace(self.github_src_dir, ''))
+                if file['type'] == 'file':
+                    gitPath = file['path']
+                    print('\tDownloading: ', gitPath, 'to', path)
+                    self._download_file(version, gitPath, path)
+                elif file['type'] == 'dir':
+                    print('Creating dir', path)
+                    self.mkdir(path)
+                    self._download_all_files(version, sub_dir + '/' + file['name'])
+                gc.collect()
 
         file_list.close()
 
     def _download_file(self, version, gitPath, path):
-        self.http_client.get('https://raw.githubusercontent.com/{}/{}/{}'.format(self.github_repo, version, gitPath), saveToFile=path)
-
+        with self.requests.get('https://raw.githubusercontent.com/{}/{}/{}'.format(self.github_repo, version, gitPath), saveToFile=path) as file_data:
+            # save file_data into saveToFile=path, formerly done by httpclient.get
+            # TODO - get file content into file, or see if adafruit request.get() can do the same
+            ######################## TODO #################################
+        file_data.close()
+        
+            
     def _copy_secrets_file(self):
         if self.secrets_file:
             fromPath = self.modulepath(self.main_dir + '/' + self.secrets_file)
