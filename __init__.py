@@ -37,6 +37,12 @@ switchD2.direction = digitalio.Direction.INPUT
 
 # On Adafruit ESP32-S3 Reverse TFT, pressed gives True
 # and readonly=True means CP cannot write the drive, but the host computer can.
-# By default, the button value will be false, and CP can update files on the drive via OTA
-if (switchD2.value) 
-  storage.remount("/", readonly=switch.value)
+# By default, the button value will be false, 
+#  and CP can update files on the drive via OTA
+if (switchD2.value) :
+  storage.remount("/", readonly=True)
+  print("D2 is pressed, host has write access to USB drive")
+else
+  storage.remount("/", readonly=False)
+  print("D2 NOT pressed, App code can update the USB drive")
+
