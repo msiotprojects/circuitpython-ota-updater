@@ -1,0 +1,41 @@
+# settings.toml
+
+# WIFI SSID and Password starting with CIRCUITPY
+# cause a WIFI auto-connect on restart .
+# COTA explicitly connects, so we use the SSID and PASSWORD set later
+#   CIRCUITPY_WIFI_SSID = "DEADEND2"
+#   CIRCUITPY_WIFI_PASSWORD = "DEADBEEF"
+
+WIFI_SSID = "DEADEND2"
+WIFI_PASSWORD = "DEADBEEF"
+
+# ThingsBoard not used anymore - here for continuity
+#THINGSBOARD_URL = "thingsboard_url"
+#THINGSBOARD_PORT = "thingsboard_port"
+#THINGSBOARD_DEVICE_TOKEN = "thingsboard_device_token"
+
+# GetHub repo and and special access for this project
+GETHUB_REPO_NAME = "cota_with_thingsboard"
+GETHUB_REPO_OWNER = "msiotprojects"
+GETHUB_ACCESS_TOKEN = ""
+# Use GETHUB_DEFAULT_BRANCH only when it is not "main"
+# GETHUB_DEFAULT_BRANCH = "master"
+
+# We might replace Thingsboard with Adafruit.io
+# if we find that to be useful later (perhaps for logging),
+# so we will keep this here for reference
+AIO_USERNAME = "nobodyinparticular"
+AIO_KEY      = "5ae65b8fcc124a0d976ef0ba4fb55a62"
+
+
+# generator board was built with upside-down display
+# 	use documented env var not otherwise applicable
+# 	to Adafruit ESP32-S3 Reverse TFT
+#	https://docs.circuitpython.org/en/latest/docs/environment.html
+CIRCUITPY_DISPLAY_ROTATION = 180
+
+
+# Adafruit ESP32-S3 Reverse TFT #1 with pins, for generator 
+  # MAC:64:E8:33:74:BC:98
+  # UID:468E3347CB89
+
