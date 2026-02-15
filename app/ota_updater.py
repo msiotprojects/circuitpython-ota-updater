@@ -12,15 +12,36 @@ class OTAUpdater:
     optimized for low power usage.
     """
 
-    def __init__(self, github_repo, github_src_dir='', module='', main_dir='app', new_version_dir='next', secrets_file=None, headers={}):
-        
+    def __init__(self, github_repo = None, 
+                         github_src_dir='',  # used for repo/src_dir/mycode.py repo/src_dir/lib/lib.py
+                         settings = None,     # dict with owner, repo name, etc
+                         
+                         main_dir='app',     # most client FW should like filesystem/main_dir/mycode.py
+                         module='',          # used when client FW is in filesystem/module/main_dir/mycode.py
+                         new_version_dir='next',         # download firware into filesystem/new_version_dir
+                         secrets_file="settings.toml",    # expect this at filesystem/secrets_file
+                 
+                         headers={}    ):    # any headers, e.g. for github authentication on private repo
+
+        if (github_repo == None) :
+                # Build repo URL from settings
+                if (settings == None):
+                    print("OTAupdater was not given either settings or a GitHub URL");
+                    return None
+
+                repo_owner = settings["repo_owner"]
+                repo_name  = settings["repo_name"]
+                github_repo = "https://github.com/{}/{}".format(repo_owner,repo_name)
+            
         # new self.headers:
-        self.headers = headers    # any headers for github authentication on private repo
-        self.github_repo = github_repo.rstrip('/').replace('https://github.com/', '')
+        self.headers = headers    # any headers, e.g. for github authentication on private repo
+
+            # github_src_dir is for any top level directory in the repo above the code, lib folder, etc.
         self.github_src_dir = '' if len(github_src_dir) < 1 else github_src_dir.rstrip('/') + '/'
-        self.module = module.rstrip('/')
-        self.main_dir = main_dir
-        self.new_version_dir = new_version_dir
+        
+        self.module = module.rstrip('/')    # for any extra directory at the top of the filesystem
+        self.main_dir = main_dir            # folder for most of the application code in the filesystem
+        self.new_version_dir = new_version_dir    # where to download the firmware update
         self.secrets_file = secrets_file
 
         # mpython orig: self.http_client = HttpClient(headers=headers)
@@ -42,27 +63,38 @@ class OTAUpdater:
 
     def __del__(self):
         # mpython orig: self.http_client = None
-        self.request = None
+        self.request     = None
         self.ssl_context = None
-        self.pool = None
+        self.pool        = None
 
     
 
     def get_misc_settings() -> dict:
-    settings = {
-        "wifi_ssid": os.getenv("WIFI_SSID", "Missing_WIFI_SSID"),
-        "wifi_password": os.getenv("WIFI_PASSWORD", "Missing_WIFI_PASSWORD"),
-        
-            # get  GETHUB repo/access from settings.toml
-        "repo_name":  os.getenv("GETHUB_REPO_NAME", "Missing_repo_name"),
-        "repo_owner": os.getenv("GETHUB_REPO_OWNER", "Missing_repo_owner"),
-        "repo_access_token": os.getenv("GETHUB_ACCESS_TOKEN", None)  ,  
 
-            # in case we ever use Adafruit.IO for additional capabilities
-        "cloud_username":    os.getenv("AIO_USERNAME", None),
-        "cloud_access_key":  os.getenv("AIO_KEY", None),
+            # WIFI connection parameters
+        ssid = os.getenv("CIRCUITPY_WIFI_SSID")        # auto-connects at restart
+        if (not ssid) :
+            ssid = os.getenv("WIFI_SSID")                    # does not auto-connect
+            
+        password = os.getenv("CIRCUITPY_WIFI_PASSWORD") # auto-connects at restart
+        if (not password) :
+            password = os.getenv("WIFI_PASSWORD")            # does not auto-connect
+            
+        settings = {
+            "wifi_ssid": ssid,
+            "wifi_password": password,
         
-    }
+                # get  GETHUB repo/access from settings.toml
+            "repo_name":  os.getenv("GETHUB_REPO_NAME", "Missing_repo_name"),
+            "repo_owner": os.getenv("GETHUB_REPO_OWNER", "Missing_repo_owner"),
+                # optional access token allows access to private repo
+            "repo_access_token": os.getenv("GETHUB_ACCESS_TOKEN", None)  ,  
+
+                # in case we ever use Adafruit.IO for additional capabilities
+            "cloud_username":    os.getenv("AIO_USERNAME", None),
+            "cloud_access_key":  os.getenv("AIO_KEY", None),
+        
+        }
     return settings
 
     
