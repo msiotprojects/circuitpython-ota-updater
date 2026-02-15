@@ -68,7 +68,7 @@ class OTAUpdater:
         self.pool        = None
 
     
-
+    @staticmethod 
     def get_misc_settings() -> dict:
 
             # WIFI connection parameters
@@ -167,8 +167,9 @@ class OTAUpdater:
 
 
     @staticmethod
-    def _using_network(ssid, password):
-        import network
+    def _using_network(ssid, password):        # initialize network if  not already active
+        import network    
+                    # TODO: Might need to import wifi and check wifi.radio.connected instead
         sta_if = network.WLAN(network.STA_IF)
         if not sta_if.isconnected():
             print('connecting to network...')
@@ -177,6 +178,9 @@ class OTAUpdater:
             while not sta_if.isconnected():
                 pass
         print('network config:', sta_if.ifconfig())
+
+
+    
 
     def _check_for_new_version(self):
         current_version = self.get_version(self.modulepath(self.main_dir))
