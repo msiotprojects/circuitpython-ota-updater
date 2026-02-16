@@ -8,9 +8,8 @@
 #      in your settings.toml file, but auto-connect is not necessary.
 #
 # There is also install_update_if_available_after_boot()
-# which checks to see if a previous connection was used
-# to discover that an update is available (bit not yet installed),
-# and does not initialize wifi if there is no update.
+# which checks to see if a pending update was noted in a previous wifi connection,
+# and does not initialize wifi if there is no indication of an available update.
 
 def connectToWifiAndUpdate():
     import time,  gc
