@@ -23,7 +23,10 @@ class OTAUpdater:
                                                         
                          secrets_file="settings.toml",    # expect this at filesystem/<secrets_file>
                  
-                         headers={}    ):    # any headers, e.g. for github authentication on private repo
+                         headers={}    ):    # any other headers, as a dictionary.
+                                             # Note that the GitHub auth header 
+                                             # will be added automatically (below)
+                                             # if we find GETHUB_ACCESS_TOKEN in the environment 
 
         if (github_repo == None) :
                 # Build repo URL from settings
@@ -35,8 +38,7 @@ class OTAUpdater:
                 repo_name  = settings["repo_name"]
                 github_repo = "https://github.com/{}/{}".format(repo_owner,repo_name)
             
-        # new self.headers:
-        self.headers = headers    # any headers, e.g. for github authentication on private repo
+
 
             # github_src_dir is for any top level directory in the repo above the code, lib folder, etc.
         self.github_src_dir = '' if len(github_src_dir) < 1 else github_src_dir.rstrip('/') + '/'
@@ -50,6 +52,17 @@ class OTAUpdater:
         # mpython orig: self.http_client = HttpClient(headers=headers)
         # Adafruit Requests replaces micropython-ota-updater htppclient.py HttpClient class 
         # with Adafruit libraries: adafruit_connection_manager, adafruit_requests
+
+        self.headers = headers    # any headers the users finds necessary, as a dictionary
+        # Support for Private Repositories :
+        # This module also adds support for private repositories.
+        #  Add authentication headers if authentication seems to be
+        #  indicated by presence of GitHub authentication token in environment
+        token_val = os.getenv("GETHUB_ACCESS_TOKEN", None) 
+        if token_val :
+           self.headers.update({"token": token_val})
+
+
             # Initalize Wifi, Socket Pool, Request Session
         self.pool = adafruit_connection_manager.get_radio_socketpool(wifi.radio)
         self.ssl_context = adafruit_connection_manager.get_radio_ssl_context(wifi.radio)
