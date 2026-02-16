@@ -16,10 +16,12 @@ class OTAUpdater:
                          github_src_dir='',  # used for repo/src_dir/mycode.py repo/src_dir/lib/lib.py
                          settings = None,     # dict with owner, repo name, etc
                          
-                         main_dir='app',     # most client FW should like filesystem/main_dir/mycode.py
-                         module='',          # used when client FW is in filesystem/module/main_dir/mycode.py
+                         main_dir='app',     # most client FW should like filesystem/<main_dir/>mycode.py
+                         module='',          # used when client FW is in filesystem/<module/>main_dir/mycode.py
                          new_version_dir='next',         # download firware into filesystem/new_version_dir
-                         secrets_file="settings.toml",    # expect this at filesystem/secrets_file
+                         new_version_file='.version'     # name of file containing current or available version
+                                                        
+                         secrets_file="settings.toml",    # expect this at filesystem/<secrets_file>
                  
                          headers={}    ):    # any headers, e.g. for github authentication on private repo
 
@@ -42,6 +44,7 @@ class OTAUpdater:
         self.module = module.rstrip('/')    # for any extra directory at the top of the filesystem
         self.main_dir = main_dir            # folder for most of the application code in the filesystem
         self.new_version_dir = new_version_dir    # where to download the firmware update
+        self.new_version_file = new_version_file    # contains version tag of current or next version
         self.secrets_file = secrets_file
 
         # mpython orig: self.http_client = HttpClient(headers=headers)
@@ -113,8 +116,8 @@ class OTAUpdater:
         """
 
         (current_version, latest_version) = self._check_for_new_version()
-        if latest_version > current_version:
-            print('New version available, will download and install on next reboot')
+        if latest_version != current_version:
+            print('New version " + latest_version + " available, will download and install on next reboot')
             self._create_new_version_file(latest_version)
             return True
 
@@ -131,8 +134,8 @@ class OTAUpdater:
         """
 
         if self.new_version_dir in os.listdir(self.module):
-            if '.version' in os.listdir(self.modulepath(self.new_version_dir)):
-                latest_version = self.get_version(self.modulepath(self.new_version_dir), '.version')
+            if self.new_version_file in os.listdir(self.modulepath(self.new_version_dir)):
+                latest_version = self.get_version(self.modulepath(self.new_version_dir), self.new_version_file)
                 print('New update found: ', latest_version)
                 OTAUpdater._using_network(ssid, password)
                 self.install_update_if_available()
@@ -154,8 +157,8 @@ class OTAUpdater:
         """
 
         (current_version, latest_version) = self._check_for_new_version()
-        if latest_version > current_version:
-            print('Updating to version {}...'.format(latest_version))
+        if latest_version != current_version:
+            print('Updating fromversion {} to {}...'.format(current_version,latest_version))
             self._create_new_version_file(latest_version)
             self._download_new_version(latest_version)
             self._copy_secrets_file()
@@ -183,7 +186,7 @@ class OTAUpdater:
     
 
     def _check_for_new_version(self):
-        current_version = self.get_version(self.modulepath(self.main_dir))
+        current_version = self.get_version(self.modulepath(self.main_dir), self.new_version_file)
         latest_version = self.get_latest_version()
 
         print('Checking version... ')
@@ -191,20 +194,24 @@ class OTAUpdater:
         print('\tLatest version: ', latest_version)
         return (current_version, latest_version)
 
-    def _create_new_version_file(self, latest_version):
+    def _create_new_version_file(self, latest_version): # save tag for latest_version in
+                                                        # file within new_version_dir
+                                                        # to indicate that a new version is available
         self.mkdir(self.modulepath(self.new_version_dir))
-        with open(self.modulepath(self.new_version_dir + '/.version'), 'w') as versionfile:
+        with open(self.modulepath(self.new_version_dir + '/' + self.new_version_file), 'w') as versionfile:
             versionfile.write(latest_version)
             versionfile.close()
 
-    def get_version(self, directory, version_file_name='.version'):
+    def get_version(self, directory, version_file_name):    # retrieve version tag from file
+                                                            # within existing code dirs
+                                                            # OR download directory
         if version_file_name in os.listdir(directory):
             with open(directory + '/' + version_file_name) as f:
                 version = f.read()
                 return version    # from file
         return '0.0'    # version 0.0 if never released or updated
 
-    def get_latest_version(self):
+    def get_latest_version(self):        # retrieve tag of latest/official version from GitHub
         with self.requests.get('https://api.github.com/repos/{}/releases/latest'.format(self.github_repo)) as latest_release:
             gh_json = latest_release.json()
             try:
@@ -325,13 +332,11 @@ class OTAUpdater:
             self.mkdir(pathToCreate + x)
             pathToCreate = pathToCreate + x + '/'
 
-    # different micropython versions act differently when directory already exists
+
     def mkdir(self, path:str):
-        try:
+        if not self._exists_dir(path) :
             os.mkdir(path)
-        except OSError as exc:
-            if exc.args[0] == 17: 
-                pass
+        
 
 
     def modulepath(self, path):
