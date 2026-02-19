@@ -148,9 +148,9 @@ class OTAUpdater:
 
         if self.new_version_dir in os.listdir(self.module):
             if self.new_version_file in os.listdir(self.modulepath(self.new_version_dir)):
-                latest_version = self.get_version(self.modulepath(self.new_version_dir), self.new_version_file)
+                latest_version = self.get_version( self.modulepath(self.new_version_dir), self.new_version_file)
                 print('New update found: ', latest_version)
-                OTAUpdater._using_network(ssid, password)
+                OTAUpdater._using_network(ssid, password)        # initialize wifi
                 self.install_update_if_available()
                 return True
             
@@ -191,6 +191,7 @@ class OTAUpdater:
             print('connecting to network...')
             sta_if.active(True)
             sta_if.connect(ssid, password)
+                # TODO: put a limit on how long we wait for a connection
             while not sta_if.isconnected():
                 pass
         print('network config:', sta_if.ifconfig())
@@ -222,7 +223,7 @@ class OTAUpdater:
             with open(directory + '/' + version_file_name) as f:
                 version = f.read()
                 return version    # from file
-        return '0.0'    # version 0.0 if never released or updated
+        return '0.0'    # version 0.0 if the active code was never released or updated
 
     def get_latest_version(self):        # retrieve tag of latest/official version from GitHub
         with self.requests.get('https://api.github.com/repos/{}/releases/latest'.format(self.github_repo)) as latest_release:
