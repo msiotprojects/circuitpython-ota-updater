@@ -270,7 +270,7 @@ class OTAUpdater:
         # with self.requests.get('https://raw.githubusercontent.com/{}/{}/{}'.format(self.github_repo, version, gitPath), saveToFile=path) as file_data:
         try:
             with self.requests.get( git_file_url ) as file_data
-                response.raise_for_status() # ensure we notice bad responses
+                file_data.raise_for_status()     # notice bad responses
 
                 # save file_data into saveToFile=path, formerly done by httpclient.get in micropython version
                 # TODO - get file content into file, or see if adafruit request.get() can do the same
@@ -282,16 +282,17 @@ class OTAUpdater:
                 with open(path, "wb") as file:
                     file.raise_for_status()    # notice bad file opens
                     file.write(file_data.content)
-                print("Copied file" + path)
+                    
+                print("Copied file " + path)
             except Exception as f: 
                 print(f"A file could not be opened : {f}")
-            finally:
-                file.close()
+                return False
 
         except Exception as e:
                 print(f"Cannot get data from {url}: {e}")
+                return False
 
-        
+        return True
         
             
     def _copy_secrets_file(self):
