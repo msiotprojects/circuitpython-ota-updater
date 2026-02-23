@@ -34,6 +34,7 @@ import storage
 
 switchD2 = digitalio.DigitalInOut(board.D2)
 switchD2.direction = digitalio.Direction.INPUT
+switchD2.pull = Pull.UP # turn on internal pull-up resistor
 
 # On Adafruit ESP32-S3 Reverse TFT, pressed gives True
 # and readonly=True means CP cannot write the drive, but the host computer can.
