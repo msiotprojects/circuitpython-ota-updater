@@ -232,13 +232,15 @@ class OTAUpdater:
         return '0.0'    # version 0.0 if the active code was never released or updated
 
     def get_latest_version(self):        # retrieve tag of latest/official version from GitHub
-        with self.requests.get('https://api.github.com/repos/{}/releases/latest'.format(self.github_repo)) as latest_release:
+        github_url = 'https://api.github.com/repos/{}/releases/latest'.format(self.github_repo)
+        with self.requests.get(github_url) as latest_release:
             gh_json = latest_release.json()
             try:
                 version = gh_json['tag_name']
             except KeyError as e:
                 raise ValueError(
                     "Release not found: \n",
+                    " URL was " + github_url + "\n" ,
                     "Please ensure release as marked as 'latest', rather than pre-release \n",
                     "github api message: \n {} \n ".format(gh_json)
                 )
