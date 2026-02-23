@@ -1,4 +1,4 @@
-import os
+f.import os
 import gc
 
 import adafruit_connection_manager
@@ -68,7 +68,7 @@ class OTAUpdater:
             # Initalize Wifi, Socket Pool, Request Session
         self.pool = adafruit_connection_manager.get_radio_socketpool(wifi.radio)
         self.ssl_context = adafruit_connection_manager.get_radio_ssl_context(wifi.radio)
-        self.requests = adafruit_requests.Session(pool, ssl_context)
+        self.requests = adafruit_requests.Session(self.pool, self.ssl_context)
             # use "with self.requests.get(url) as var"
             # where previously we used self.httpclient.get(url)
             #    was xxxx
@@ -81,7 +81,7 @@ class OTAUpdater:
 
     def __del__(self):
         # mpython orig: self.http_client = None
-        self.requests     = None
+        self.requests    = None
         self.ssl_context = None
         self.pool        = None
 
