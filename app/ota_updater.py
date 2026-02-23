@@ -28,15 +28,17 @@ class OTAUpdater:
                                              # will be added automatically (below)
                                              # if we find GETHUB_ACCESS_TOKEN in the environment 
 
-        if (github_repo == None) :
-                # Build repo URL from settings
+        if (github_repo) :
+            self.github_repo = github_repo.rstrip('/').replace('https://github.com/', '')
+        else :
+                # Build repo from settings
                 if (settings == None):
                     print("OTAupdater was not given either settings or a GitHub URL");
                     return None
 
                 repo_owner = settings["repo_owner"]
                 repo_name  = settings["repo_name"]
-                github_repo = "https://github.com/{}/{}".format(repo_owner,repo_name)
+                self.github_repo = "{}/{}".format(repo_owner,repo_name)
             
 
 
@@ -66,8 +68,8 @@ class OTAUpdater:
             # Initalize Wifi, Socket Pool, Request Session
         self.pool = adafruit_connection_manager.get_radio_socketpool(wifi.radio)
         self.ssl_context = adafruit_connection_manager.get_radio_ssl_context(wifi.radio)
-        self.request = adafruit_requests.Session(pool, ssl_context)
-            # use "with self.request.get(url) as var"
+        self.requests = adafruit_requests.Session(pool, ssl_context)
+            # use "with self.requests.get(url) as var"
             # where previously we used self.httpclient.get(url)
             #    was xxxx
             #    now    with self.requests.get(url) as response:
@@ -79,7 +81,7 @@ class OTAUpdater:
 
     def __del__(self):
         # mpython orig: self.http_client = None
-        self.request     = None
+        self.requests     = None
         self.ssl_context = None
         self.pool        = None
 
@@ -264,11 +266,32 @@ class OTAUpdater:
         file_list.close()
 
     def _download_file(self, version, gitPath, path):
-        with self.requests.get('https://raw.githubusercontent.com/{}/{}/{}'.format(self.github_repo, version, gitPath), saveToFile=path) as file_data:
-            # save file_data into saveToFile=path, formerly done by httpclient.get
-            # TODO - get file content into file, or see if adafruit request.get() can do the same
-            ######################## TODO #################################
-        file_data.close()
+        git_file_url = 'https://raw.githubusercontent.com/{}/{}/{}'.format(self.github_repo, version, gitPath)
+        # with self.requests.get('https://raw.githubusercontent.com/{}/{}/{}'.format(self.github_repo, version, gitPath), saveToFile=path) as file_data:
+        try:
+            with self.requests.get( git_file_url ) as file_data
+                response.raise_for_status() # ensure we notice bad responses
+
+                # save file_data into saveToFile=path, formerly done by httpclient.get in micropython version
+                # TODO - get file content into file, or see if adafruit request.get() can do the same
+                ######################## TODO #################################
+                # We open file as binary in case the content is not text (e.g. a compiled library)
+                # and hope that it is legitimate to copy text this way too,
+                # rather than as file_data.text 
+            try:
+                with open(path, "wb") as file:
+                    file.raise_for_status()    # notice bad file opens
+                    file.write(file_data.content)
+                print("Copied file" + path)
+            except Exception as f: 
+                print(f"A file could not be opened : {f}")
+            finally:
+                file.close()
+
+        except Exception as e:
+                print(f"Cannot get data from {url}: {e}")
+
+        
         
             
     def _copy_secrets_file(self):
