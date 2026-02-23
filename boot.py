@@ -30,9 +30,10 @@
 # The readonly argument in boot.py is set to the value of the pin. 
 import board
 import digitalio
+from digitalio import DigitalInOut, Pull
 import storage
 
-switchD2 = digitalio.DigitalInOut(board.D2)
+switchD2 = DigitalInOut(board.D2)
 switchD2.direction = digitalio.Direction.INPUT
 switchD2.pull = Pull.UP # turn on internal pull-up resistor
 
