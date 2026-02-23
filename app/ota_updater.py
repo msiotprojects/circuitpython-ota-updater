@@ -318,7 +318,7 @@ class OTAUpdater:
         print('Update installed, please reboot now')
 
     def _rmtree(self, directory):
-        for entry in os.ilistdir(directory):
+        for entry in os.listdir(directory):
             is_dir = entry[1] == 0x4000
             if is_dir:
                 self._rmtree(directory + '/' + entry[0])
@@ -337,7 +337,7 @@ class OTAUpdater:
         if not self._exists_dir(toPath):
             self._mk_dirs(toPath)
 
-        for entry in os.ilistdir(fromPath):
+        for entry in os.listdir(fromPath):
             is_dir = entry[1] == 0x4000
             if is_dir:
                 self._copy_directory(fromPath + '/' + entry[0], toPath + '/' + entry[0])
