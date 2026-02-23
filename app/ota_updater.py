@@ -113,7 +113,7 @@ class OTAUpdater:
             "cloud_access_key":  os.getenv("AIO_KEY", None),
         
         }
-    return settings
+        return settings
 
     
     def check_for_update_to_install_during_next_reboot(self) -> bool:
