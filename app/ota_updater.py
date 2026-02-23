@@ -269,7 +269,7 @@ class OTAUpdater:
         git_file_url = 'https://raw.githubusercontent.com/{}/{}/{}'.format(self.github_repo, version, gitPath)
         # with self.requests.get('https://raw.githubusercontent.com/{}/{}/{}'.format(self.github_repo, version, gitPath), saveToFile=path) as file_data:
         try:
-            with self.requests.get( git_file_url ) as file_data
+            with self.requests.get( git_file_url ) as file_data :
                 file_data.raise_for_status()     # notice bad responses
 
                 # save file_data into saveToFile=path, formerly done by httpclient.get in micropython version
@@ -279,7 +279,7 @@ class OTAUpdater:
                 # and hope that it is legitimate to copy text this way too,
                 # rather than as file_data.text 
             try:
-                with open(path, "wb") as file:
+                with open(path, "wb") as file :
                     file.raise_for_status()    # notice bad file opens
                     file.write(file_data.content)
                     
