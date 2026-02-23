@@ -1,4 +1,4 @@
-f.import os
+import os
 import gc
 
 import adafruit_connection_manager
