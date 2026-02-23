@@ -186,17 +186,21 @@ class OTAUpdater:
 
     @staticmethod
     def _using_network(ssid, password):        # initialize network if  not already active
-        import network    
-                    # TODO: Might need to import wifi and check wifi.radio.connected instead
-        sta_if = network.WLAN(network.STA_IF)
-        if not sta_if.isconnected():
+        # micropython: import network    
+
+        import wifi
+        
+        if not wifi.radio.connected():
             print('connecting to network...')
-            sta_if.active(True)
-            sta_if.connect(ssid, password)
-                # TODO: put a limit on how long we wait for a connection
-            while not sta_if.isconnected():
-                pass
-        print('network config:', sta_if.ifconfig())
+            try:
+                wifi.radio.connect(ssid, password)
+                
+            except ConnectionError as e:
+                print("wifi connect error:",e)
+                return False
+                              
+        print('Connected to WIFI network ', ssid)
+        return True
 
 
     
