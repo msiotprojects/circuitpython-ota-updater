@@ -190,7 +190,7 @@ class OTAUpdater:
 
         import wifi
         
-        if not wifi.radio.connected():
+        if not wifi.radio.connected:
             print('connecting to network...')
             try:
                 wifi.radio.connect(ssid, password)
@@ -199,7 +199,7 @@ class OTAUpdater:
                 print("wifi connect error:",e)
                 return False
                               
-        print('Connected to WIFI network ', ssid)
+        print('Connected to WIFI as ', wifi.radio.ipv4_address)
         return True
 
 
