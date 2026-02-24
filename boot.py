@@ -30,17 +30,30 @@
 # The readonly argument in boot.py is set to the value of the pin. 
 import board
 import digitalio
-from digitalio import DigitalInOut, Pull
 import storage
+from time import sleep  # debug code: to delay between 2 button reads
 
-switchD2 = DigitalInOut(board.D2)
-switchD2.direction = digitalio.Direction.INPUT
-switchD2.pull = Pull.UP # turn on internal pull-up resistor
 
-# On Adafruit ESP32-S3 Reverse TFT, pressed gives True
-# and readonly=True means CP cannot write the drive, but the host computer can.
+# On Adafruit ESP32-S3 Reverse TFT, D1 or D2 are low by default
+# and when pressed the signal goes high, which gives True
+# and readonly=True means CircuitPython code cannot write the drive, 
+# but the host computer can write the drive 
+#  (which is default, for easy code updates via USB).
 # By default, the button value will be false, 
-#  and CP can update files on the drive via OTA
+#  and the code below remounts w/readonly=False
+#  which lets app code update files on the drive via OTA
+
+switchD2 = digitalio.DigitalInOut(board.D2)
+switchD2.direction = digitalio.Direction.INPUT
+switchD2.pull = digitalio.Pull.DOWN # turn off internal pull-up resistor
+# None gives  TF or TT(pressed)
+# DOWN gives  FF or TT (pressed)
+# UP   gives  TT or TT (pressed)
+print(" Reading D2:")
+print(switchD2.value)
+sleep(0.1)
+print(switchD2.value)
+
 if (switchD2.value) :
   storage.remount("/", readonly=True)
   print("D2 is pressed, host has write access to USB drive")
