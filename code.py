@@ -43,5 +43,30 @@ def startApp():
     import app.start        # sorry - this assumes that most code is in app/ subdir
 
 
+####################################################
+import board
+import digitalio
+import storage
+
+switchD2 = DigitalInOut(board.D2)
+# switchD2.direction = digitalio.Direction.INPUT
+# switchD2.pull = digitalio.Pull.DOWN # turn on internal pull-up resistor
+
+# On Adafruit ESP32-S3 Reverse TFT, pressed gives True
+# and readonly=True means CP cannot write the drive, but the host computer can.
+# By default, the button value will be false, 
+#  and CP can update files on the drive via OTA
+print("checking D2:")
+if (switchD2.value) :
+  storage.remount("/", readonly=True)
+  print("D2 is pressed, host has write access to USB drive")
+else :
+  storage.remount("/", readonly=False)
+  print("D2 NOT pressed, App code can update the USB drive")
+
+exit
+#######################################################
+
+
 connectToWifiAndUpdate()
 startApp()
