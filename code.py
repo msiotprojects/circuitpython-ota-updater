@@ -48,7 +48,7 @@ import board
 import digitalio
 import storage
 
-switchD2 = DigitalInOut(board.D2)
+switchD2 = digitalio.DigitalInOut(board.D2)
 # switchD2.direction = digitalio.Direction.INPUT
 # switchD2.pull = digitalio.Pull.DOWN # turn on internal pull-up resistor
 
