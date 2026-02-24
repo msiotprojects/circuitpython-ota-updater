@@ -71,12 +71,12 @@ print(switchD2.value)
 
 if (switchD2.value) :
   print("D2 is pressed, host has write access to USB drive")
-  storage.remount("/", readonly=True)
+#  storage.remount("/", readonly=True)
 else :
   print("D2 NOT pressed, App code can update the USB drive")
-  storage.remount("/", readonly=False)
+#  storage.remount("/", readonly=False)
 sleep(5)
-exit
+#exit
 #######################################################
 
 
