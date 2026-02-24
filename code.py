@@ -1,6 +1,5 @@
-
-
-# Based on MicroPython OTAUpdater, 
+# Based on MicroPython OTAUpdater at GitHub rdehuyss/micropython-ota-updater
+#
 # connectToWifiAndUpdate() below assumes that immediatly on reset, 
 # we want to connect to wifi,  check for update, and install it.
 #      CircuitPython will auto-connect to wifi on restart IF
@@ -47,23 +46,36 @@ def startApp():
 import board
 import digitalio
 import storage
+from time import sleep
 
 switchD2 = digitalio.DigitalInOut(board.D2)
-# switchD2.direction = digitalio.Direction.INPUT
-# switchD2.pull = digitalio.Pull.DOWN # turn on internal pull-up resistor
+switchD2.direction = digitalio.Direction.INPUT
+switchD2.pull = digitalio.Pull.DOWN # turn off internal pull-up resistor
+# None gives  TFFF or TTTT(pressed)
+# DOWN gives  FFFF or TTTT (pressed)
+# UP   gives  TTTT or TTTT
 
 # On Adafruit ESP32-S3 Reverse TFT, pressed gives True
 # and readonly=True means CP cannot write the drive, but the host computer can.
-# By default, the button value will be false, 
+# By default, the button value will be false,
 #  and CP can update files on the drive via OTA
 print("checking D2:")
-if (switchD2.value) :
-  storage.remount("/", readonly=True)
-  print("D2 is pressed, host has write access to USB drive")
-else :
-  storage.remount("/", readonly=False)
-  print("D2 NOT pressed, App code can update the USB drive")
+print(switchD2.value)
+sleep(0.1)
+print(switchD2.value)
+sleep(0.1)
+print(switchD2.value)
+sleep(0.1)
+print(switchD2.value)
 
+
+if (switchD2.value) :
+  print("D2 is pressed, host has write access to USB drive")
+  storage.remount("/", readonly=True)
+else :
+  print("D2 NOT pressed, App code can update the USB drive")
+  storage.remount("/", readonly=False)
+sleep(5)
 exit
 #######################################################
 
