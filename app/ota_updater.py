@@ -248,16 +248,20 @@ class OTAUpdater:
         return version
 
     def _download_new_version(self, version):
-        print('Downloading version {}'.format(version))
+        newdir = self.modulepath(self.new_version_dir)
+        print('Downloading version {} to {}'.format(version,newdir))
         self._download_all_files(version)
-        print('Version {} downloaded to {}'.format(version, self.modulepath(self.new_version_dir)))
+        print('Version {} downloaded to {}'.format(version, newdir))
 
     def _download_all_files(self, version, sub_dir=''):
         url = 'https://api.github.com/repos/{}/contents{}{}{}?ref=refs/tags/{}'.format(self.github_repo, self.github_src_dir, self.main_dir, sub_dir, version)
         gc.collect() 
         with self.requests.get(url) as file_list:
             file_list_json = file_list.json()
+            print("json: "); print(file_list_json)
             for file in file_list_json:
+                print("file is ") ; print(file)
+                print("Download " file[path])
                 path = self.modulepath(self.new_version_dir + '/' + file['path'].replace(self.main_dir + '/', '').replace(self.github_src_dir, ''))
                 if file['type'] == 'file':
                     gitPath = file['path']
@@ -295,7 +299,7 @@ class OTAUpdater:
                 return False
 
         except Exception as e:
-                print(f"Cannot get data from {url}: {e}")
+                print(f"Cannot get data from {git_file_url}: {e}")
                 return False
 
         return True
