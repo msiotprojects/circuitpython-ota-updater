@@ -26,7 +26,7 @@ def connectToWifiAndUpdate():
     settings = OTAUpdater.get_misc_settings()
 
         # initialize network if not already active
-    OTAupdater._using_network(settings["wifi_ssid"], settings["wifi_password"])
+    OTAUpdater._using_network(settings["wifi_ssid"], settings["wifi_password"])
     
     # Micropython OTAUpdater passed ( 'https://github.com/owner_name/repo_name', main_dir='app', secrets_file="secrets.py")
     otaUpdater = OTAUpdater(settings = settings, github_repo = None)
