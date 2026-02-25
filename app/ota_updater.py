@@ -175,13 +175,24 @@ class OTAUpdater:
         if latest_version != current_version:
             print('Updating fromversion {} to {}...'.format(current_version,latest_version))
             self._create_new_version_file(latest_version)
-            self._download_new_version(latest_version)
-            self._copy_secrets_file()
-            self._delete_old_version()
-            self._install_new_version()
-            return True
+            if not self._download_new_version(latest_version):
+                print("Could not download latest version " + latest_version
+                return False
+            if not self._copy_secrets_file():
+                print("Could not copy secrets file")
+                return False
+                
+            if not self._delete_old_version()
+                print("OLD VERSION MAY BE PARTIALLY DELETED")
+                return False
+            
+            if not self._install_new_version()
+                print("Could not install new version " + latest_version)
+                return False
+            
+            return True    # Update was installed 
         
-        return False
+        return False    # OK, but Update not available
 
 
     @staticmethod
@@ -250,31 +261,44 @@ class OTAUpdater:
     def _download_new_version(self, version):
         newdir = self.modulepath(self.new_version_dir)
         print('Downloading version {} to {}'.format(version,newdir))
-        self._download_all_files(version)
-        print('Version {} downloaded to {}'.format(version, newdir))
+        if self._download_all_files(version):
+            print('Version {} downloaded to {}'.format(version, newdir))
+            return True
+        print('Version {} FAILED to download cleanly to {}'.format(version, newdir))
+        return False
 
     def _download_all_files(self, version, sub_dir=''):
-        url = 'https://api.github.com/repos/{}/contents{}{}{}?ref=refs/tags/{}'.format(self.github_repo, self.github_src_dir, self.main_dir, sub_dir, version)
-        print(" download URL " + url )
+        ret_status = True   # return status: assume that nothing fails
+        
+        # root_url = self.github_repo + '/contents/' + self.github_src_dir + self.main_dir + sub_dir
+        url = 'https://api.github.com/repos/{}/contents/{}{}{}?ref=refs/tags/{}'.format(self.github_repo, self.github_src_dir, self.main_dir, sub_dir, version)
+        print(" download URL " + url)
         gc.collect() 
         with self.requests.get(url) as file_list:
             file_list_json = file_list.json()
             # print("json: "); print(file_list_json)
             for file in file_list_json:
                 # print("file is ") ; print(file)
-                print("Download " + file[path])
+                fname = file['path']
+                print("Download " + fname )
                 path = self.modulepath(self.new_version_dir + '/' + file['path'].replace(self.main_dir + '/', '').replace(self.github_src_dir, ''))
                 if file['type'] == 'file':
                     gitPath = file['path']
                     print('\tDownloading: ', gitPath, 'to', path)
-                    self._download_file(version, gitPath, path)
+                    if not self._download_file(version, gitPath, path):
+                        ret_status = False
                 elif file['type'] == 'dir':
                     print('Creating dir', path)
-                    self.mkdir(path)
-                    self._download_all_files(version, sub_dir + '/' + file['name'])
+                    if self.mkdir(path):
+                        if not self._download_all_files(version, sub_dir + '/' + file['name']) :
+                            ret_status = False
+                        
                 gc.collect()
 
         file_list.close()
+        return ret_status
+
+    
 
     def _download_file(self, version, gitPath, path):
         git_file_url = 'https://raw.githubusercontent.com/{}/{}/{}'.format(self.github_repo, version, gitPath)
@@ -301,7 +325,10 @@ class OTAUpdater:
                 # rather than as file_data.text 
             try:
                 with open(path, "wb") as file :
-                    file.raise_for_status()    # notice bad file opens
+                    # file.raise_for_status()    # notice bad file opens
+                    # raise_for_status() not working with files?
+                    # always get exception : 
+                    #  'FileIO' object has no attribute 'raise_for_status'
                     file.write(file_data.content)
                     
                 print("Copied file " + path)
@@ -321,8 +348,13 @@ class OTAUpdater:
             fromPath = self.modulepath(self.main_dir + '/' + self.secrets_file)
             toPath = self.modulepath(self.new_version_dir + '/' + self.secrets_file)
             print('Copying secrets file from {} to {}'.format(fromPath, toPath))
-            self._copy_file(fromPath, toPath)
-            print('Copied secrets file from {} to {}'.format(fromPath, toPath))
+            if self._copy_file(fromPath, toPath):
+                print('Copied secrets file from {} to {}'.format(fromPath, toPath))
+                return True
+
+            return False    # failed to copy secrets
+        else:
+            return True    # no secrets file to copy : succeed
 
     def _delete_old_version(self):
         print('Deleting old version at {} ...'.format(self.modulepath(self.main_dir)))
