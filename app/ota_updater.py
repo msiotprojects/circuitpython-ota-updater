@@ -255,13 +255,14 @@ class OTAUpdater:
 
     def _download_all_files(self, version, sub_dir=''):
         url = 'https://api.github.com/repos/{}/contents{}{}{}?ref=refs/tags/{}'.format(self.github_repo, self.github_src_dir, self.main_dir, sub_dir, version)
+        print(" download URL " + url )
         gc.collect() 
         with self.requests.get(url) as file_list:
             file_list_json = file_list.json()
-            print("json: "); print(file_list_json)
+            # print("json: "); print(file_list_json)
             for file in file_list_json:
-                print("file is ") ; print(file)
-                print("Download " file[path])
+                # print("file is ") ; print(file)
+                print("Download " + file[path])
                 path = self.modulepath(self.new_version_dir + '/' + file['path'].replace(self.main_dir + '/', '').replace(self.github_src_dir, ''))
                 if file['type'] == 'file':
                     gitPath = file['path']
@@ -280,7 +281,17 @@ class OTAUpdater:
         # with self.requests.get('https://raw.githubusercontent.com/{}/{}/{}'.format(self.github_repo, version, gitPath), saveToFile=path) as file_data:
         try:
             with self.requests.get( git_file_url ) as file_data :
-                file_data.raise_for_status()     # notice bad responses
+                with self.requests.get( git_file_url ) as file_data :
+                #file_data.raise_for_status()     # notice bad responses
+                # raise_for_status() not working with GitHub(?):
+                # always get exception :
+                #  'Response' object has no attribute 'raise_for_status'
+                code = file_data.status_code()
+                if ((code < 200) or (code > 299)):
+                    print(f"Bad status {code} from {git_file_url}")
+                    file_data.close()
+                    return False
+                   
 
                 # save file_data into saveToFile=path, formerly done by httpclient.get in micropython version
                 # TODO - get file content into file, or see if adafruit request.get() can do the same
