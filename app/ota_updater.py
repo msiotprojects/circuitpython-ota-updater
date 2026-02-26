@@ -182,11 +182,11 @@ class OTAUpdater:
                 print("Could not copy secrets file")
                 return False
                 
-            if not self._delete_old_version()
+            if not self._delete_old_version() :
                 print("OLD VERSION MAY BE PARTIALLY DELETED")
                 return False
             
-            if not self._install_new_version()
+            if not self._install_new_version() :
                 print("Could not install new version " + latest_version)
                 return False
             
@@ -310,7 +310,7 @@ class OTAUpdater:
                 # raise_for_status() not working with GitHub(?):
                 # always get exception :
                 #  'Response' object has no attribute 'raise_for_status'
-                code = file_data.status_code()
+                code = file_data.status_code
                 if ((code < 200) or (code > 299)):
                     print(f"Bad status {code} from {git_file_url}")
                     file_data.close()
