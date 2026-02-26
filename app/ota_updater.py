@@ -16,12 +16,14 @@ class OTAUpdater:
                          github_src_dir='',  # used for repo/src_dir/mycode.py repo/src_dir/lib/lib.py
                          settings = None,     # dict with owner, repo name, etc
                          
-                         main_dir='app',     # most client FW should like filesystem/<main_dir/>mycode.py
-                         module='',          # used when client FW is in filesystem/<module/>main_dir/mycode.py
+                         main_dir='app',     # most client FW should in filesystem at /<main_dir/>mycode.py
+                         module='',          # used when client FW is in filesystem at /<module/><main_dir/>mycode.py
                          new_version_dir='next',         # download firware into filesystem/new_version_dir
                          new_version_file='.version' ,   # name of file containing current or available version
                                                         
-                         secrets_file="settings.toml",    # expect this at filesystem/<secrets_file>
+                         secrets_file="settings.toml",    # expect this in filesystem at <secrets_file>
+                                                          # As parameter, include any other path component,
+                                                          # e.g. /app/secrets.txt
                  
                          headers={}    ):    # any other headers, as a dictionary.
                                              # Note that the GitHub auth header 
@@ -176,10 +178,10 @@ class OTAUpdater:
             print('Updating fromversion {} to {}...'.format(current_version,latest_version))
             self._create_new_version_file(latest_version)
             if not self._download_new_version(latest_version):
-                print("Could not download latest version " + latest_version
+                print("Could not download latest version " + latest_version )
                 return False
-            if not self._copy_secrets_file():
-                print("Could not copy secrets file")
+            if not self._copy_secrets_file() :
+                print("Could not back up secrets file")
                 return False
                 
             if not self._delete_old_version() :
@@ -187,7 +189,7 @@ class OTAUpdater:
                 return False
             
             if not self._install_new_version() :
-                print("Could not install new version " + latest_version)
+                print("Could not install new version " + latest_version )
                 return False
             
             return True    # Update was installed 
@@ -280,11 +282,11 @@ class OTAUpdater:
             for file in file_list_json:
                 # print("file is ") ; print(file)
                 fname = file['path']
-                print("Download " + fname )
+                # print("Download " + fname )
                 path = self.modulepath(self.new_version_dir + '/' + file['path'].replace(self.main_dir + '/', '').replace(self.github_src_dir, ''))
                 if file['type'] == 'file':
                     gitPath = file['path']
-                    print('\tDownloading: ', gitPath, 'to', path)
+                    print('Downloading: ', gitPath, 'to', path)
                     if not self._download_file(version, gitPath, path):
                         ret_status = False
                 elif file['type'] == 'dir':
@@ -305,16 +307,15 @@ class OTAUpdater:
         # with self.requests.get('https://raw.githubusercontent.com/{}/{}/{}'.format(self.github_repo, version, gitPath), saveToFile=path) as file_data:
         try:
             with self.requests.get( git_file_url ) as file_data :
-                with self.requests.get( git_file_url ) as file_data :
                 #file_data.raise_for_status()     # notice bad responses
                 # raise_for_status() not working with GitHub(?):
                 # always get exception :
                 #  'Response' object has no attribute 'raise_for_status'
                 code = file_data.status_code
                 if ((code < 200) or (code > 299)):
-                    print(f"Bad status {code} from {git_file_url}")
-                    file_data.close()
-                    return False
+                        print(f"Bad status {code} from {git_file_url}")
+                        file_data.close()
+                        return False
                    
 
                 # save file_data into saveToFile=path, formerly done by httpclient.get in micropython version
@@ -331,7 +332,7 @@ class OTAUpdater:
                         #  'FileIO' object has no attribute 'raise_for_status'
                         file.write(file_data.content)
                     
-                    print("Copied file " + path)
+                    print("\tCopied file " + path)
                 except Exception as f: 
                     print(f"A file could not be opened : {f}")
                     return False
@@ -344,17 +345,37 @@ class OTAUpdater:
         
             
     def _copy_secrets_file(self):
-        if self.secrets_file:
-            fromPath = self.modulepath(self.main_dir + '/' + self.secrets_file)
-            toPath = self.modulepath(self.new_version_dir + '/' + self.secrets_file)
-            print('Copying secrets file from {} to {}'.format(fromPath, toPath))
-            if self._copy_file(fromPath, toPath):
-                print('Copied secrets file from {} to {}'.format(fromPath, toPath))
-                return True
+        # if secrets_file (which is supposed to include its path)
+        # is in main_dir then 
+        #  1) it will be removed when the old version is removed 
+        #     before the new one can be installed.
+        #  2) it will probably NOT be in the Git repository
+        #     so we will not get a fresh one by downloading.
+        # (if it is not in main_dir, then there's no problem)
+        #
+        # When it looks like there will be a problem,
+        # we copy it into the new_version_dir prior to removal,
+        # otherwise we leave it alone.
+        if not self.secrets_file:
+            return True        # no secrets to copy, succeed
+            
+        # find out if secrets file is somewhere in main_dir
+        words = self.secrets_file.split("/")    # split path into words on /
+        if not (self.main_dir in words) :
+            # main_dir not part of path to secrets, nothing to do
+            return True
 
-            return False    # failed to copy secrets
-        else:
-            return True    # no secrets file to copy : succeed
+        # copy secrets file into new_version_dir
+        fromPath = self.modulepath(self.secrets_file)  # filename should include path
+        toPath = self.modulepath(self.new_version_dir + '/' + self.secrets_file)             
+            
+        print('Copying secrets file from {} to {}'.format(fromPath, toPath))
+        if self._copy_file(fromPath, toPath):
+            print('Copied secrets file from {} to {}'.format(fromPath, toPath))
+            return True
+
+        return False    # failed to copy secrets
+        
 
     def _delete_old_version(self):
         print('Deleting old version at {} ...'.format(self.modulepath(self.main_dir)))
@@ -368,7 +389,11 @@ class OTAUpdater:
         else:
             self._copy_directory(self.modulepath(self.new_version_dir), self.modulepath(self.main_dir))
             self._rmtree(self.modulepath(self.new_version_dir))
+
+            
         print('Update installed, please reboot now')
+        return True
+        
 
     def _rmtree(self, directory):
         for entry in os.listdir(directory):
@@ -388,7 +413,8 @@ class OTAUpdater:
 
     def _copy_directory(self, fromPath, toPath):
         if not self._exists_dir(toPath):
-            self._mk_dirs(toPath)
+            if not self._mk_dirs(toPath):
+                return False
 
         for entry in os.listdir(fromPath):
             is_dir = entry[1] == 0x4000
@@ -397,17 +423,36 @@ class OTAUpdater:
             else:
                 self._copy_file(fromPath + '/' + entry[0], toPath + '/' + entry[0])
 
-    def _copy_file(self, fromPath, toPath):
-        with open(fromPath) as fromFile:
-            with open(toPath, 'w') as toFile:
-                CHUNK_SIZE = 512 # bytes
-                data = fromFile.read(CHUNK_SIZE)
-                while data:
-                    toFile.write(data)
-                    data = fromFile.read(CHUNK_SIZE)
-            toFile.close()
-        fromFile.close()
 
+    
+    def _copy_file(self, fromPath, toPath):
+        retStat = True    # good return status until proven otherwise
+        try:
+            with open(fromPath) as fromFile:
+                try:
+                    with open(toPath, 'w') as toFile:
+                        CHUNK_SIZE =     512 # bytes
+                        data = fromFile.read(CHUNK_SIZE)
+                        try:
+                            while data:
+                                toFile.write(data)
+                                data = fromFile.read(CHUNK_SIZE)
+                        except:
+                            print("Could not write data into " + toPath)
+                            retStat = False
+                    
+                except:
+                    print("Could not open target file " + toPath)
+                    retStat = False
+            
+        except:
+            print("Could not open source file " + fromPath)
+            retStat = False
+
+        return retStat
+        
+
+    
     def _exists_dir(self, path) -> bool:
         try:
             os.listdir(path)
