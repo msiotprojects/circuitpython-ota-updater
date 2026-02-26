@@ -323,18 +323,18 @@ class OTAUpdater:
                 # We open file as binary in case the content is not text (e.g. a compiled library)
                 # and hope that it is legitimate to copy text this way too,
                 # rather than as file_data.text 
-            try:
-                with open(path, "wb") as file :
-                    # file.raise_for_status()    # notice bad file opens
-                    # raise_for_status() not working with files?
-                    # always get exception : 
-                    #  'FileIO' object has no attribute 'raise_for_status'
-                    file.write(file_data.content)
+                try:
+                    with open(path, "wb") as file :
+                        # file.raise_for_status()    # notice bad file opens
+                        # raise_for_status() not working with files?
+                        # always get exception : 
+                        #  'FileIO' object has no attribute 'raise_for_status'
+                        file.write(file_data.content)
                     
-                print("Copied file " + path)
-            except Exception as f: 
-                print(f"A file could not be opened : {f}")
-                return False
+                    print("Copied file " + path)
+                except Exception as f: 
+                    print(f"A file could not be opened : {f}")
+                    return False
 
         except Exception as e:
                 print(f"Cannot get data from {git_file_url}: {e}")
