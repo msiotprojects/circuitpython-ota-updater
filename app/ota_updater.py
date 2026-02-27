@@ -378,36 +378,78 @@ class OTAUpdater:
             return True
 
         return False    # failed to copy secrets
-        
+
+    
 
     def _delete_old_version(self):
+        retStat = True        # assume good return status
         print('Deleting old version at {} ...'.format(self.modulepath(self.main_dir)))
-        self._rmtree(self.modulepath(self.main_dir))
-        print('Deleted old version at {} ...'.format(self.modulepath(self.main_dir)))
+        if self._rmtree(self.modulepath(self.main_dir)):
+            action = "Deleted"
+        else:
+            action = "FAILED to delete"
+            retStat = False
+            
+        print('{} old version at {} ...'.format(action,self.modulepath(self.main_dir)))   
+        return retStat
 
+    
     def _install_new_version(self):
+        retStat = True
         print('Installing new version at {} ...'.format(self.modulepath(self.main_dir)))
         if self._os_supports_rename():
-            os.rename(self.modulepath(self.new_version_dir), self.modulepath(self.main_dir))
+            try:
+                os.rename(self.modulepath(self.new_version_dir), self.modulepath(self.main_dir))
+            except:
+                print("Unable to rename {} as {}".format(self.modulepath(self.new_version_dir), self.modulepath(self.main_dir))
+                retStat = False
         else:
-            self._copy_directory(self.modulepath(self.new_version_dir), self.modulepath(self.main_dir))
-            self._rmtree(self.modulepath(self.new_version_dir))
+            if not self._copy_directory(self.modulepath(self.new_version_dir), self.modulepath(self.main_dir)):
+                print("Cannot copy {} to {}".format(self.modulepath(self.new_version_dir), self.modulepath(self.main_dir))
+                      retStat = False
+            else:    
+                if not self._rmtree(self.modulepath(self.new_version_dir)):
+                    retStat = False
 
             
-        print('Update installed, please reboot now')
-        return True
+        if RetStat:
+            print('Update installed, please reboot now')
+        else:
+            print('   UPDATE FAILED: DO NOT REBOOT WITHOUT EXAMINING SYSTEM ')
+            
+        return retStat
         
 
     def _rmtree(self, directory):
+        retStat = True    # assume good return status
         print("Enter _rmtree " + directory)
+        if not directory:
+            return True    # nothing to remove, pretend
         for entry in os.listdir(directory):
-            is_dir = entry[1] == 0x4000
-            if is_dir:
-                print("  Call rmtree " + 
-                self._rmtree(directory + '/' + entry[0])
-            else:
-                os.remove(directory + '/' + entry[0])
-        os.rmdir(directory)
+              entryPath = directory + "/" + entry
+              if os.path.isdir(entryPath):
+                    print("  Call rmtree " + entryPath )
+                    if not self._rmtree(entryPath):
+                        retStat = False
+                        print("FAILED to rmtree " + entryPath)
+              else:
+                  print("   Call remove " + entryPath )
+                  try:
+                      os.remove(entryPath)
+                  except:
+                    retStat = False
+                    print("FAILED to remove " + entryPath)
+                      
+        try:
+            os.rmdir(directory)
+        except:
+            retStat = False
+            print("FAILED to _rmtree " + directory)
+
+        return retStat
+
+    
+      
 
     def _os_supports_rename(self) -> bool:
         self._mk_dirs('otaUpdater/osRenameTest')
