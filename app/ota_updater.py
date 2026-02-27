@@ -2,7 +2,7 @@ import os
 import gc
 
 import adafruit_connection_manager
-
+import adafruit_pathlib
 import adafruit_requests
 
 import wifi
@@ -425,7 +425,8 @@ class OTAUpdater:
             return True    # nothing to remove, pretend
         for entry in os.listdir(directory):
               entryPath = directory + "/" + entry
-              if os.path.isdir(entryPath):
+              Path = adafruit_pathlib.Path(entryPath)
+              if Path.is_dir :
                     print("  Call rmtree " + entryPath )
                     if not self._rmtree(entryPath):
                         retStat = False
