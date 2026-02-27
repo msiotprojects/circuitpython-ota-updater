@@ -401,12 +401,12 @@ class OTAUpdater:
             try:
                 os.rename(self.modulepath(self.new_version_dir), self.modulepath(self.main_dir))
             except:
-                print("Unable to rename {} as {}".format(self.modulepath(self.new_version_dir), self.modulepath(self.main_dir))
+                print("Unable to rename {} as {}".format(self.modulepath(self.new_version_dir), self.modulepath(self.main_dir)))
                 retStat = False
         else:
             if not self._copy_directory(self.modulepath(self.new_version_dir), self.modulepath(self.main_dir)):
-                print("Cannot copy {} to {}".format(self.modulepath(self.new_version_dir), self.modulepath(self.main_dir))
-                      retStat = False
+                print("Cannot copy {} to {}".format(self.modulepath(self.new_version_dir), self.modulepath(self.main_dir)))
+                retStat = False
             else:    
                 if not self._rmtree(self.modulepath(self.new_version_dir)):
                     retStat = False
