@@ -426,7 +426,7 @@ class OTAUpdater:
         for entry in os.listdir(directory):
               entryPath = directory + "/" + entry
               Path = adafruit_pathlib.Path(entryPath)
-              if Path.is_dir :
+              if Path.is_dir() :
                     print("  Call rmtree " + entryPath )
                     if not self._rmtree(entryPath):
                         retStat = False
