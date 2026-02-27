@@ -407,10 +407,8 @@ class OTAUpdater:
                 retStat = False
             else:    
                 if not self._rmtree(self.modulepath(self.new_version_dir)):
-                    retStat = False
-
-            
-        if RetStat:
+                    retStat = False 
+        if retStat :
             print('Update installed, please reboot now')
         else:
             print('   UPDATE FAILED: DO NOT REBOOT WITHOUT EXAMINING SYSTEM ')
