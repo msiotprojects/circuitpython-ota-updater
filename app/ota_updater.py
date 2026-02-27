@@ -2,9 +2,7 @@ import os
 import gc
 
 import adafruit_connection_manager
-import adafruit_pathlib             # for path.is_dir()
-                                    # by dir_path = adafruit_pathlib.Path("/lib")
-                                    # if  dir_path.is_dir():
+
 import adafruit_requests
 
 import wifi
