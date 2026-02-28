@@ -296,6 +296,9 @@ class OTAUpdater:
                     if self.mkdir(path):
                         if not self._download_all_files(version, sub_dir + '/' + file['name']) :
                             ret_status = False
+                    else:
+                        print("Could NOT self.mkdir: " + path)
+                        ret_status = False
                         
                 gc.collect()
 
@@ -516,7 +519,12 @@ class OTAUpdater:
 
     def mkdir(self, path:str):
         if not self._exists_dir(path) :
-            os.mkdir(path)
+            if os.mkdir(path):
+                return True        # all OK
+            else:
+                return False        # cannot mkdir
+        else:
+            return True        # already exists, OK
         
 
 
