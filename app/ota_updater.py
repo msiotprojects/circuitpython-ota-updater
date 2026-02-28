@@ -125,7 +125,7 @@ class OTAUpdater:
         This method expects an active internet connection and will compare the current 
         version with the latest version available on GitHub.
         If a newer version is available, the file 'next/.version' will be created 
-        and you need to call machine.reset(). A reset is needed as the installation process 
+        and you need to reset/reboot the machine. A reset is needed as the installation process 
         takes up a lot of memory (mostly due to the http stack)
 
         Returns
@@ -156,7 +156,8 @@ class OTAUpdater:
                 latest_version = self.get_version( self.modulepath(self.new_version_dir), self.new_version_file)
                 print('New update found: ', latest_version)
                 OTAUpdater._using_network(ssid, password)        # initialize wifi
-                self.install_update_if_available()
+                if not self.install_update_if_available() :
+                    return False
                 return True
             
         print('No new updates found...')
