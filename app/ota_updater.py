@@ -18,6 +18,12 @@ class OTAUpdater:
                          settings = None,     # dict with owner, repo name, etc
                          
                          main_dir='app',     # most client FW should in filesystem at /<main_dir/>mycode.py
+
+                             # Code related to main_branch is NOT CURRENTLY implemented -
+                             # I haven't discovered where/if it is used in the API URLs
+                         main_branch="main",    # older code might pass in "master"
+                                                 # or set GETHUB_DEFAULT_BRANCH in secrets_file (below)
+                 
                          module='',          # used when client FW is in filesystem at /<module/><main_dir/>mycode.py
                          new_version_dir='next',         # download firware into filesystem/new_version_dir
                          new_version_file='.version' ,   # name of file containing current or available version
@@ -53,6 +59,9 @@ class OTAUpdater:
         self.new_version_dir = new_version_dir    # where to download the firmware update
         self.new_version_file = new_version_file    # contains version tag of current or next version
         self.secrets_file = secrets_file
+        
+        token_val = os.getenv("GETHUB_DEFAULT_BRANCH", main_branch) 
+        self.main_branch = token_val
 
         # mpython orig: self.http_client = HttpClient(headers=headers)
         # Adafruit Requests replaces micropython-ota-updater htppclient.py HttpClient class 
